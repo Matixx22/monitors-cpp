@@ -1,2 +1,2 @@
 all:
-	gcc main.cpp monitor.h -pthread
+	g++ -o program main.cpp buffer.cpp monitor.h -pthread

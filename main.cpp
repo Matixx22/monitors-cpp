@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <climits>
 #include <pthread.h>
+#include <signal.h>
 #include "buffer.cpp"
 
 #define BUFF_NUM 3
@@ -16,6 +17,11 @@ pthread_t prod_t[P_NUM];
 pthread_t cons_t[C_NUM];
 
 Buffer buffers[BUFF_NUM];
+
+void sig_handler(int sig) {
+	printf("Consumer id %d received special message. Quiting...\n", gettid());
+	pthread_exit(NULL);
+}
 
 void produce(int item, int tid) {
         int id = rand() % BUFF_NUM;
@@ -40,7 +46,7 @@ int consume(int tid) {
         return(item);
 }
 
-void* prod1() {
+void* prod1(void* null) {
         int i = 0, j, k;
         while (i < 5) {
                 produce(i, gettid());
@@ -49,17 +55,16 @@ void* prod1() {
         }
 }
 
-void* prod2() {
+void* prod2(void* null) {
         int i = 0, j, k;
         while (i < 3) {
                 produce(i, gettid());
                 ++i;
                 for (j = 0; j < 15; ++j) { for (k = 0; k < 9999999; ++k) {} }
         }
-        prod_alarm(gettid());
 }
 
-void* cons1() {
+void* cons1(void* null) {
         int item;
         int i = 0, j, k;
 
@@ -77,7 +82,7 @@ void* cons1() {
         }
 }
 
-void* cons2() {
+void* cons2(void* null) {
         int item;
         int i = 0, j, k;
 
@@ -97,7 +102,7 @@ void* cons2() {
 
 int main(int argc, char** argv) {
 	srand(time(NULL));
-	singal(SIGUSR1, sig_hander);
+	signal(SIGUSR1, sig_handler);
 
 	pthread_create(&prod_t[0], NULL, prod1, NULL);
         pthread_create(&prod_t[1], NULL, prod2, NULL);

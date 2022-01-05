@@ -12,7 +12,7 @@ class Buffer: public Monitor {
 		std::queue<int> queue;
 	
 	public:
-		int capacity = 10;
+		int capacity = 3;
 
 		Buffer() {}
 

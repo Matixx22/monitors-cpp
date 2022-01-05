@@ -18,9 +18,11 @@ pthread_t cons_t[C_NUM];
 
 Buffer buffers[BUFF_NUM];
 
-void sig_handler(int sig) {
-	printf("Consumer id %d received special message. Quiting...\n", gettid());
-	pthread_exit(NULL);
+bool isAlarm;
+
+void alarm(int tid) {
+	printf("Producent %d produced alarm\n", tid);
+	isAlarm = true;
 }
 
 void produce(int item, int tid) {
@@ -36,49 +38,46 @@ int consume(int tid) {
 
         int item = buffers[id].get();
 
-        if (item == INT_MAX) {
-                //printf("Alarm received by consumer %d from queue %d. Clearing queues...\n", tid, id);
-                return(INT_MAX);
-        }
-
-        printf("Consumer id %d consumed item: %d from queue: %d\n", tid, item, id);
+        printf("Consumer id %d consumed item: %d from buffer: %d\n", tid, item, id);
 
         return(item);
 }
 
 void* prod1(void* null) {
         int i = 0, j, k;
-        while (i < 5) {
+        while (i < 10) {
+		if (isAlarm) pthread_exit(NULL);
+
                 produce(i, gettid());
                 ++i;
-                for (j = 0; j < 10; ++j) { for (k = 0; k < 9999999; ++k) {} }
+                for (j = 0; j < 5; ++j) { for (k = 0; k < 9999999; ++k) {} }
         }
 }
 
 void* prod2(void* null) {
         int i = 0, j, k;
-        while (i < 3) {
+        while (i < 2) {
+		if (isAlarm) pthread_exit(NULL);
+
                 produce(i, gettid());
                 ++i;
                 for (j = 0; j < 15; ++j) { for (k = 0; k < 9999999; ++k) {} }
         }
+	alarm(gettid());
 }
 
 void* cons1(void* null) {
         int item;
         int i = 0, j, k;
 
-        while (i < 10) {
+        while (i < 4) {
                 item = consume(gettid());
-                if (item == INT_MAX) {
-                        // send signal to every consumer thread
-                        for (j = 0; j < C_NUM; ++j) {
-                                pthread_kill(cons_t[j], SIGUSR1);
-                        }
-                        exit(0);
-                }
+		if (isAlarm) {
+			printf("Consumer %d received alarm during conusming item %d. Quitting...\n", gettid(), item);
+			pthread_exit(NULL);
+		}
                 ++i;
-                for (j = 0; j < 15; ++j) { for (k = 0; k < 9999999; ++k) {} }
+                for (j = 0; j < 40; ++j) { for (k = 0; k < 9999999; ++k) {} }
         }
 }
 
@@ -86,23 +85,20 @@ void* cons2(void* null) {
         int item;
         int i = 0, j, k;
 
-        while (i < 10) {
+        while (i < 4) {
                 item = consume(gettid());
-                if (item == INT_MAX) {
-                        // send signal to every consumer thread
-                        for (j = 0; j < C_NUM; ++j) {
-                                pthread_kill(cons_t[j], SIGUSR1);
-                        }
-                        exit(0);
-                }
+		if (isAlarm) {
+			printf("Consumer %d received alarm during conusming item %d. Quitting...\n", gettid(), item);
+			pthread_exit(NULL);
+		}
                 ++i;
-                for (j = 0; j < 20; ++j) { for (k = 0; k < 9999999; ++k) {} }
+                for (j = 0; j < 25; ++j) { for (k = 0; k < 9999999; ++k) {} }
         }
 }
 
 int main(int argc, char** argv) {
 	srand(time(NULL));
-	signal(SIGUSR1, sig_handler);
+	isAlarm = false;
 
 	pthread_create(&prod_t[0], NULL, prod1, NULL);
         pthread_create(&prod_t[1], NULL, prod2, NULL);
